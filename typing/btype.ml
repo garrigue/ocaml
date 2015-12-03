@@ -86,8 +86,8 @@ let rec repr =
 *)
 
 (* Path compression must be undone by backtracking *)
-let repr_link' = ref (fun _ -> assert false)
-let repr t = !repr_link' 0 t t.desc t
+let repr' = ref (fun _ -> assert false)
+let repr t = !repr' t
 
 let rec commu_repr = function
     Clink r when !r <> Cunknown -> commu_repr !r
@@ -738,6 +738,12 @@ let rec repr_link n t d =
      end;
      t'
 
-let () = repr_link' := repr_link
+let repr t =
+  match t.desc with
+   Tlink t' as d ->
+     repr_link 1 t d t'
+ | Tfield (_, k, _, t') as d when field_kind_repr k = Fabsent ->
+     repr_link 1 t d t'
+ | _ -> t
 
-let repr t = repr_link 0 t t.desc t
+let () = repr' := repr
