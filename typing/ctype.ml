@@ -1401,6 +1401,8 @@ let expand_abbrev_gen kind find_type_expansion env ty =
             begin match repr ty' with
               {desc=Tvariant row} as ty when static_row row ->
                 ty.desc <- Tvariant { row with row_name = Some (path, args) }
+            | {desc=Tobject (fi, nm)} as ty when has_constr_row ty ->
+                nm := Some (path, object_row fi :: args)
             | _ -> ()
             end;
             (* For gadts, remember type as non exportable *)
@@ -1412,6 +1414,8 @@ let expand_abbrev_gen kind find_type_expansion env ty =
                   if level < lv then raise (Unify [(ty, newvar2 level)]);
                   Env.add_gadt_instances env lv [ty; ty']
             end;
+            (* Format.eprintf "@[expand_abbrev %a ->@ %a@]"
+              !print_raw ty !print_raw ty'; *)
             ty'
       end
   | _ ->
@@ -2490,8 +2494,8 @@ and unify3 env t1 t1' t2 t2' =
           (* XXX One should do some kind of unification... *)
           begin match (repr t2').desc with
             Tobject (_, {contents = Some (_, va::_)}) when
-              (match (repr va).desc with
-                Tvar _|Tunivar _|Tnil -> true | _ -> false) -> ()
+              (match (expand_head !env va).desc with
+                Tvar _|Tunivar _|Tconstr _|Tnil -> true | _ -> false) -> ()
           | Tobject (_, nm2) -> set_name nm2 !nm1
           | _ -> ()
           end
@@ -2770,7 +2774,9 @@ and unify_row_field env fixed1 fixed2 more l f1 f2 =
 let unify env ty1 ty2 =
   let snap = Btype.snapshot () in
   try
-    unify env ty1 ty2
+    (*Format.eprintf "@[<2>unify %a@ %a ->@ " !print_raw ty1 !print_raw ty2;*)
+    unify env ty1 ty2;
+    (*Format.eprintf "@;<1 -2>%a@]@ " !print_raw ty1*)
   with
     Unify trace ->
       undo_compress snap;
@@ -4236,11 +4242,11 @@ let rec normalize_type_rec env visited ty =
             if deep_occur ty (newgenty (Ttuple l)) then
               (* The abbreviation may be hiding something, so remove it *)
               set_name nm None
-            else let v' = repr v in
+            else let v' = expand_head env v in
             begin match v'.desc with
             | Tvar _ | Tunivar _ ->
                 if v' != v then set_name nm (Some (n, v' :: l))
-            | Tnil ->
+            | Tnil | Tconstr _ ->
                 log_type ty; ty.desc <- Tconstr (n, l, ref Mnil)
             | _ -> set_name nm None
             end
