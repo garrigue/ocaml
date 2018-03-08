@@ -26,6 +26,7 @@ exception Cannot_expand
 exception Cannot_apply
 exception Recursive_abbrev
 exception Unification_recursive_abbrev of (type_expr * type_expr) list
+exception Gadt_eqations_forbidden
 
 val init_def: int -> unit
         (* Set the initial variable level *)
@@ -109,10 +110,13 @@ val limited_generalize: type_expr -> type_expr -> unit
         (* Only generalize some part of the type
            Make the remaining of the type non-generalizable *)
 
-val check_scope_escape : int -> type_expr -> unit
+val check_scope_escape: int -> type_expr -> unit
         (* [check_scope_escape lvl ty] ensures that [ty] could be raised
            to the level [lvl] without any scope escape.
            Raises [Unify] otherwise *)
+val forbid_gadt_equations: bool ref
+        (* When set to true, causes attempts to add a GADT equation
+           to raise [Gadt_equations_forbidden] *)
 
 val instance: ?partial:bool -> type_expr -> type_expr
         (* Take an instance of a type scheme *)
@@ -169,7 +173,8 @@ val enforce_constraints: Env.t -> type_expr -> unit
 
 val unify: Env.t -> type_expr -> type_expr -> unit
         (* Unify the two types given. Raise [Unify] if not possible. *)
-val unify_gadt: equations_level:int -> Env.t ref -> type_expr -> type_expr -> unit
+val unify_gadt:
+        equations_level:int -> Env.t ref -> type_expr -> type_expr -> unit
         (* Unify the two types given and update the environment with the
            local constraints. Raise [Unify] if not possible. *)
 val unify_var: Env.t -> type_expr -> type_expr -> unit

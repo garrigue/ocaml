@@ -4548,11 +4548,25 @@ and check_scope_escape loc env level ty =
     raise(Error(loc, env, Pattern_type_clash(trace)))
 
 and type_cases ?in_function env ty_arg ty_res partial_flag loc caselist =
+  let tvar_state = Typetexp.get_tvar_state ()
+  and state = save_state () in
+  try
+    Ctype.forbid_gadt_equations := true;
+    type_cases_do ?in_function ~has_gadts:false env ty_arg ty_res
+      partial_flag loc caselist
+  with Gadt_eqations_forbidden ->
+    Ctype.forbid_gadt_equations := false;
+    Typetexp.set_tvar_state tvar_state;
+    set_state state;
+    type_cases_do ?in_function ~has_gadts:true env ty_arg ty_res
+      partial_flag loc caselist
+
+and type_cases_do ?in_function ~has_gadts env ty_arg ty_res
+    partial_flag loc caselist =
   (* ty_arg is _fully_ generalized *)
   let patterns = List.map (fun {pc_lhs=p} -> p) caselist in
   let contains_polyvars = List.exists contains_polymorphic_variant patterns in
-  let erase_either = contains_polyvars && contains_variant_either ty_arg
-  and has_gadts = List.exists (contains_gadt env) patterns in
+  let erase_either = contains_polyvars && contains_variant_either ty_arg in
 (*  prerr_endline ( if has_gadts then "contains gadt" else "no gadt"); *)
   let ty_arg =
     if (has_gadts || erase_either) && not !Clflags.principal
@@ -4632,6 +4646,7 @@ and type_cases ?in_function env ty_arg ty_res partial_flag loc caselist =
         check_scope_escape pat.pat_loc env outer_level ty_arg;
         (pat, ty_arg, (ext_env, unpacks)))
       caselist in
+  Ctype.forbid_gadt_equations := false;
   (* Unify all cases (delayed to keep it order-free) *)
   let ty_arg' = newvar () in
   let unify_pats ty =

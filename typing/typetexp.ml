@@ -245,6 +245,10 @@ let univars        = ref ([] : (string * type_expr) list)
 let pre_univars    = ref ([] : type_expr list)
 let used_variables = ref (Tbl.empty : (string, type_expr * Location.t) Tbl.t)
 
+type tvar_state = (string, type_expr) Tbl.t
+let get_tvar_state () = !type_variables
+let set_tvar_state tbl = type_variables := tbl
+
 let reset_type_variables () =
   reset_global_level ();
   Ctype.reset_reified_var_counter ();

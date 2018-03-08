@@ -36,6 +36,10 @@ type variable_context
 val narrow: unit -> variable_context
 val widen: variable_context -> unit
 
+type tvar_state
+val get_tvar_state: unit -> tvar_state
+val set_tvar_state: tvar_state -> unit
+
 exception Already_bound
 
 type error =

@@ -2257,9 +2257,13 @@ let get_gadt_equations_level () =
   | None -> assert false
   | Some x -> x
 
+exception Gadt_eqations_forbidden
+let forbid_gadt_equations = ref false
+
 let add_gadt_equation env source destination =
   (* Format.eprintf "@[add_gadt_equation %s %a@]@."
     (Path.name source) !Btype.print_raw destination; *)
+  if !forbid_gadt_equations then raise Gadt_eqations_forbidden;
   if local_non_recursive_abbrev !env source destination then begin
     let destination = duplicate_type destination in
     let expansion_scope =
