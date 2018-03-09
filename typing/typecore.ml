@@ -4549,7 +4549,7 @@ and check_scope_escape loc env level ty =
 
 and type_cases ?in_function env ty_arg ty_res partial_flag loc caselist =
   let tvar_state = Typetexp.get_tvar_state ()
-  and state = save_state () in
+  and state = save_state (ref env) in
   try
     Ctype.forbid_gadt_equations := true;
     type_cases_do ?in_function ~has_gadts:false env ty_arg ty_res
@@ -4557,9 +4557,12 @@ and type_cases ?in_function env ty_arg ty_res partial_flag loc caselist =
   with Gadt_eqations_forbidden ->
     Ctype.forbid_gadt_equations := false;
     Typetexp.set_tvar_state tvar_state;
-    set_state state;
+    set_state state (ref env);
     type_cases_do ?in_function ~has_gadts:true env ty_arg ty_res
       partial_flag loc caselist
+  | exn ->
+      Ctype.forbid_gadt_equations := false; raise exn
+
 
 and type_cases_do ?in_function ~has_gadts env ty_arg ty_res
     partial_flag loc caselist =
@@ -4646,6 +4649,7 @@ and type_cases_do ?in_function ~has_gadts env ty_arg ty_res
         check_scope_escape pat.pat_loc env outer_level ty_arg;
         (pat, ty_arg, (ext_env, unpacks)))
       caselist in
+  (* Back to standard handling of GADTs *)
   Ctype.forbid_gadt_equations := false;
   (* Unify all cases (delayed to keep it order-free) *)
   let ty_arg' = newvar () in

@@ -1943,10 +1943,14 @@ let deep_occur t0 ty =
       information is indeed lost, but it probably does not worth it.
 *)
 
+exception Gadt_eqations_forbidden
+let forbid_gadt_equations = ref false
+
 (* a local constraint can be added only if the rhs
    of the constraint does not contain any Tvars.
    They need to be removed using this function *)
 let reify env t =
+  if !forbid_gadt_equations then raise Gadt_eqations_forbidden;
   let create_fresh_constr lev name =
     let name = match name with Some s -> "$'"^s | _ -> "$" in
     let path = Path.Pident (Ident.create (get_new_abstract_name name)) in
@@ -2256,9 +2260,6 @@ let get_gadt_equations_level () =
   match !gadt_equations_level with
   | None -> assert false
   | Some x -> x
-
-exception Gadt_eqations_forbidden
-let forbid_gadt_equations = ref false
 
 let add_gadt_equation env source destination =
   (* Format.eprintf "@[add_gadt_equation %s %a@]@."
