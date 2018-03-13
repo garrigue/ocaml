@@ -703,6 +703,9 @@ let rec normalize_package_path env p =
           normalize_package_path env (Path.Pdot (p1', s, n))
       | _ -> p
 
+exception Gadt_eqations_forbidden
+let forbid_gadt_equations = ref false
+
 let check_scope_escape level ty =
   let rec aux ty =
     let ty = repr ty in
@@ -711,7 +714,9 @@ let check_scope_escape level ty =
       begin match ty.scope with
         Some lv ->
         let var = newvar2 level in
-        if level < lv then raise (Unify [(ty,ty); (var, var)])
+        if level < lv then
+          if !forbid_gadt_equations then raise Gadt_eqations_forbidden
+          else raise (Unify [(ty,ty); (var, var)])
       | None -> ()
       end;
       iter_type_expr aux ty
@@ -734,7 +739,9 @@ let update_scope scope ty =
       | None -> lvl
       | Some lvl' -> max lvl lvl'
     in
-    if ty.level < scope then raise (Unify [(ty, newvar2 ty.level)]);
+    if ty.level < scope then
+      if !forbid_gadt_equations then raise Gadt_eqations_forbidden
+      else raise (Unify [(ty, newvar2 ty.level)]);
     set_scope ty (Some scope)
 
 let rec update_level env level expand ty =
@@ -1942,9 +1949,6 @@ let deep_occur t0 ty =
       abbreviated.  It would be possible to check whether some
       information is indeed lost, but it probably does not worth it.
 *)
-
-exception Gadt_eqations_forbidden
-let forbid_gadt_equations = ref false
 
 (* a local constraint can be added only if the rhs
    of the constraint does not contain any Tvars.
