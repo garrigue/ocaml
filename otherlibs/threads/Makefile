@@ -38,7 +38,7 @@ P=stdlib__
 
 LIB_OBJS=$(LIB)/camlinternalFormatBasics.cmo stdlib.cmo					\
   $(LIB)/$(P)array.cmo $(LIB)/$(P)list.cmo $(LIB)/$(P)char.cmo $(LIB)/$(P)bytes.cmo	\
-  $(LIB)/$(P)string.cmo $(LIB)/$(P)sys.cmo $(LIB)/$(P)sort.cmo marshal.cmo		\
+  $(LIB)/$(P)string.cmo $(LIB)/$(P)sys.cmo $(LIB)/$(P)sort.cmo $(P)marshal.cmo		\
   $(LIB)/$(P)obj.cmo $(LIB)/$(P)int32.cmo $(LIB)/$(P)int64.cmo				\
   $(LIB)/$(P)nativeint.cmo $(LIB)/$(P)lexing.cmo $(LIB)/$(P)parsing.cmo			\
   $(LIB)/$(P)set.cmo $(LIB)/$(P)map.cmo $(LIB)/$(P)stack.cmo $(LIB)/$(P)queue.cmo	\
@@ -85,7 +85,7 @@ stdlib.cmi: $(LIB)/stdlib.cmi
 	ln -s $(LIB)/stdlib.cmi stdlib.cmi
 
 $(P)marshal.cmo: marshal.mli $(P)marshal.cmi marshal.ml
-	$(CAMLC) ${COMPFLAGS} -o$@ -c marshal.ml
+	$(CAMLC) ${COMPFLAGS} -o $@ -c marshal.ml
 
 marshal.mli: $(LIB)/marshal.mli
 	ln -s $(LIB)/marshal.mli marshal.mli
