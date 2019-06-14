@@ -1842,10 +1842,7 @@ let occur_univar env ty =
   let visited = ref TypeMap.empty in
   let rec occur_rec bound ty =
     let ty = repr ty in
-    if ty.level >= lowest_level &&
-      if TypeSet.is_empty bound then
-        (ty.level <- pivot_level - ty.level; true)
-      else try
+    if try
         let bound' = TypeMap.find ty !visited in
         if TypeSet.exists (fun x -> not (TypeSet.mem x bound)) bound' then
           (visited := TypeMap.add ty (TypeSet.inter bound bound') !visited;
@@ -1863,23 +1860,24 @@ let occur_univar env ty =
           let bound = List.fold_right TypeSet.add (List.map repr tyl) bound in
           occur_rec bound  ty
       | Tconstr (_, [], _) -> ()
-      | Tconstr (p, tl, _) ->
-          begin try
-            let td = Env.find_type p env in
-            List.iter2
-              (fun t v ->
-                if Variance.(mem May_pos v || mem May_neg v)
-                then occur_rec bound t)
-              tl td.type_variance
-          with Not_found ->
-            List.iter (occur_rec bound) tl
+      | Tconstr (p, tyl, _) ->
+          let variance =
+            try (Env.find_type p env).type_variance
+            with Not_found -> List.map (fun _ -> Variance.may_inv) tyl
+          in
+          if List.for_all ((=) Variance.null) variance then () else
+          begin match try_expand_safe env ty with
+          | ty -> occur_rec bound ty
+          | exception Cannot_expand ->
+              List.iter2
+                (fun v t ->
+                  if Variance.(mem May_pos v || mem May_neg v)
+                  then occur_rec bound t)
+                variance tyl
           end
       | _ -> iter_type_expr (occur_rec bound) ty
   in
-  Misc.try_finally (fun () ->
-      occur_rec TypeSet.empty ty
-    )
-    ~always:(fun () -> unmark_type ty)
+  occur_rec TypeSet.empty ty
 
 (* Grouping univars by families according to their binders *)
 let add_univars =
@@ -1912,15 +1910,19 @@ let univars_escape env univar_pairs vl ty =
       | Tunivar _ ->
           if TypeSet.mem t family then raise Trace.(Unify [escape(Univ t)])
       | Tconstr (_, [], _) -> ()
-      | Tconstr (p, tl, _) ->
-          begin try
-            let td = Env.find_type p env in
-            List.iter2
-              (fun t v ->
-                if Variance.(mem May_pos v || mem May_neg v) then occur t)
-              tl td.type_variance
-          with Not_found ->
-            List.iter occur tl
+      | Tconstr (p, tyl, _) ->
+          let variance =
+            try (Env.find_type p env).type_variance
+            with Not_found -> List.map (fun _ -> Variance.may_inv) tyl
+          in
+          if List.for_all ((=) Variance.null) variance then () else
+          begin match try_expand_safe env t with
+          | t -> occur t
+          | exception Cannot_expand ->
+              List.iter2
+                (fun v t ->
+                  if Variance.(mem May_pos v || mem May_neg v) then occur t)
+                variance tyl
           end
       | _ ->
           iter_type_expr occur t
