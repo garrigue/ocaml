@@ -641,7 +641,7 @@ fun (x : <m:'a.<p:'a;..> >) -> x#m;;
 - : (< m : 'a. 'b * 'a list > as 'b) -> 'b * 'c list = <fun>
 val f :
   (< m : 'b. 'a * (< n : 'b; .. > as 'b) > as 'a) ->
-  'a * (< n : 'c; .. > as 'c) = <fun>
+  'a * (< n : 'c; .. > as 'c) [@@pure] = <fun>
 - : (< p : 'b. < m : 'b; n : 'a; .. > as 'b > as 'a) ->
     (< m : 'c; n : 'a; .. > as 'c)
 = <fun>
@@ -656,8 +656,8 @@ val f :
 = <fun>
 val f :
   (< m : 'b. 'a * (< n : 'b; .. > as 'b) > as 'a) ->
-  (< m : 'd. 'c * (< n : 'd; .. > as 'd) > as 'c) * (< n : 'e; .. > as 'e) =
-  <fun>
+  (< m : 'd. 'c * (< n : 'd; .. > as 'd) > as 'c) * (< n : 'e; .. > as 'e)
+  [@@pure] = <fun>
 - : (< p : 'b. < m : 'b; n : 'a; .. > as 'b > as 'a) ->
     (< m : 'c; n : < p : 'e. < m : 'e; n : 'd; .. > as 'e > as 'd; .. > as 'c)
 = <fun>
@@ -768,8 +768,8 @@ class ['a] olist :
     method fold : f:('a -> 'b -> 'b) -> init:'b -> 'b
   end
 val sum : int #olist -> int [@@pure] = <fun>
-val count : 'a #olist -> int = <fun>
-val append : 'a #olist -> ('a #olist as 'b) -> 'b = <fun>
+val count : 'a #olist -> int [@@pure] = <fun>
+val append : 'a #olist -> ('a #olist as 'b) -> 'b [@@pure] = <fun>
 |}];;
 
 type 'a t = unit
@@ -1281,8 +1281,8 @@ let h x =
 class c : object method id : 'a -> 'a end
 type u = c option
 val just : 'a option -> 'a [@@pure] = <fun>
-val f : c -> 'a -> 'a = <fun>
-val g : c -> 'a -> 'a = <fun>
+val f : c -> 'a -> 'a [@@pure] = <fun>
+val g : c -> 'a -> 'a [@@pure] = <fun>
 val h : < id : 'a; .. > -> 'a = <fun>
 |}, Principal{|
 class c : object method id : 'a -> 'a end
@@ -1292,12 +1292,12 @@ Line 4, characters 42-62:
 4 | let f x = let l = [Some x; (None : u)] in (just(List.hd l))#id;;
                                               ^^^^^^^^^^^^^^^^^^^^
 Warning 18: this use of a polymorphic method is not principal.
-val f : c -> 'a -> 'a = <fun>
+val f : c -> 'a -> 'a [@@pure] = <fun>
 Line 7, characters 36-47:
 7 |   let x = List.hd [Some x; none] in (just x)#id;;
                                         ^^^^^^^^^^^
 Warning 18: this use of a polymorphic method is not principal.
-val g : c -> 'a -> 'a = <fun>
+val g : c -> 'a -> 'a [@@pure] = <fun>
 val h : < id : 'a; .. > -> 'a = <fun>
 |}];;
 
@@ -1584,7 +1584,7 @@ class ['c] clss : object method mthod : 'c -> 't t -> ('c, 't) pvariant end
 val f2 : 'a -> 'b -> 'c t -> 'c t [@@pure] = <fun>
 val f1 :
   < mthod : 't. 'a -> 't t -> [< `V of 'a * 't t ]; .. > ->
-  'a -> 'b t -> 'b t = <fun>
+  'a -> 'b t -> 'b t [@@pure] = <fun>
 |}]
 
 (* PR#7285 *)

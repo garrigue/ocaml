@@ -269,10 +269,39 @@ let f (o : c) = o#id;;
 class c = object method id : 'a. 'a -> 'a [@pure] = fun x -> Obj.magic x end;;
 [%%expect{|
 class c : object method id : 'a. 'a -> 'a [@pure] end
-val f : c -> 'a -> 'a = <fun>
+val f : c -> 'a -> 'a [@@pure] = <fun>
 Line 3, characters 52-72:
 3 | class c = object method id : 'a. 'a -> 'a [@pure] = fun x -> Obj.magic x end;;
                                                         ^^^^^^^^^^^^^^^^^^^^
 Error: This method has type 'b. 'b -> 'b which is less general than
          'a. 'a -> 'a [@pure]
+|}]
+class c = object method ref : 'a. 'a -> 'a ref = ref end;;
+let f (o : c) = o#ref;;
+let ref' = f (new c);;
+let b : bool list = let r = ref' [] in r := [3]; !r;;
+[%%expect{|
+class c : object method ref : 'a -> 'a ref end
+val f : c -> 'a -> 'a ref [@@pure] = <fun>
+val ref' : 'a -> 'a ref [@@pure] = <fun>
+val b : bool list = [<unknown constructor>]
+|}]
+let f o = (o : c :> <ref : 'a -> 'a ref>)#ref;;
+[%%expect{|
+val f : c -> 'a -> 'a ref [@@pure] = <fun>
+|}]
+
+(* Allow pure method calls *)
+class ['a] c (x : 'a) = object
+  method fold : 'b. ('a -> 'b -> 'b) -> 'b -> 'b [@pure] = fun f -> f x
+end;;
+let f1 x = (new c (ref x))#fold (fun r -> r := x; x);;
+let o = new c 3;;
+let f2 = o#fold;;
+[%%expect{|
+class ['a] c :
+  'a -> object method fold : 'b. ('a -> 'b -> 'b) -> 'b -> 'b [@pure] end
+val f1 : ('a -> 'a) -> 'a -> 'a = <fun>
+val o : int c = <obj>
+val f2 : (int -> 'a -> 'a) -> 'a -> 'a [@@pure] = <fun>
 |}]

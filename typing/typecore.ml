@@ -1837,8 +1837,7 @@ let rec is_pure_exp exp =
   | Texp_for (_, _, e1, e2, _, e3)
     -> is_pure_exp e1 && is_pure_exp e2 && is_pure_exp e3
   | Texp_send (e, _, eo)
-    -> is_pure_exp e && is_pure_option eo && ground_exp exp
-       && Option.fold ~none:true ~some:ground_exp eo
+    -> is_pure_exp e && is_pure_option eo
   | Texp_new _
     -> ground_exp exp
   | Texp_instvar (_, path, _)
