@@ -1872,7 +1872,7 @@ and impure_access label =
     {desc = Tpoly (_, _ :: _, false)} -> true
   | _ -> false
 
-let maybe_expansive e = not (is_pure_exp e || is_nonexpansive e)
+let maybe_expansive e = not (is_nonexpansive e || is_pure_exp e)
 
 let check_recursive_bindings env valbinds =
   let ids = let_bound_idents valbinds in
