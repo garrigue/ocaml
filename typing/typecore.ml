@@ -1800,8 +1800,7 @@ let is_pure_record_label = function
 *)
 
 let ground_exp exp =
-  Ctype.free_variables exp.exp_type = [] &&
-  try Ctype.occur_univar Env.empty exp.exp_type; true with _ -> false
+  Ctype.ground_type exp.exp_env exp.exp_type
 
 let rec is_pure_exp exp =
   match exp.exp_desc with

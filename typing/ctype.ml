@@ -669,6 +669,46 @@ let closed_class params sign =
     Some reason
 
 
+(* Types that might contain polymorphic variables *)
+
+let rec ground_type_rec env visited bound ty =
+  let ty = repr ty in
+  let bound, check =
+    match TypeHash.find visited ty with
+    | bound0 when TypeSet.subset bound0 bound -> bound0, false
+    | bound0 -> TypeSet.inter bound0 bound, true
+    | exception Not_found -> bound, true
+  in
+  if check then begin
+    TypeHash.add visited ty bound;
+    match ty.desc with
+    | Tvar _ -> raise Exit
+    | Tunivar _ when not (TypeSet.mem ty bound) -> raise Exit
+    | Tconstr (p, tl, _) when Path.scope p >= !global_level ->
+        let td = Env.find_type p env in
+        begin match td.type_manifest with
+        | None -> raise Exit
+        | Some ty1 ->
+            List.iter (ground_type_rec env visited bound) tl;
+            if TypeHash.mem visited ty1 then () else
+            ground_type_rec env visited
+              (List.fold_right TypeSet.add
+                 (List.flatten (List.map free_variables td.type_params)) bound)
+              ty1
+        end
+    | Tpoly (ty, tl, _) ->
+        ground_type_rec env visited
+          (List.fold_right TypeSet.add (List.map repr tl) bound)
+        ty
+    | _ ->
+        Btype.iter_type_expr (ground_type_rec env visited bound) ty
+  end
+
+let ground_type env ty =
+  try ground_type_rec env (TypeHash.create 7) TypeSet.empty ty; true
+  with Exit | Not_found -> false
+
+
                             (**********************)
                             (*  Type duplication  *)
                             (**********************)

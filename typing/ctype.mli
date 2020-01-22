@@ -346,6 +346,8 @@ type closed_class_failure =
 val closed_class:
         type_expr list -> class_signature -> closed_class_failure option
         (* Check whether all type variables are bound *)
+val ground_type: Env.t -> type_expr -> bool
+        (* Check [Tvar], [Tunivar] and locally abstract types *)
 
 val unalias: type_expr -> type_expr
 val signature_of_class_type: class_type -> class_signature
