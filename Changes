@@ -124,8 +124,8 @@ Working version
   points to the grammar.
   (Andreas Abel, review by Xavier Leroy)
 
-- Add a directive to switch off debugging in toplevel (allows to see
-  optimized bytecode with -dlambda)
+- #9220: add a directive to switch off debugging in toplevel
+  (allows to see optimized bytecode with -dlambda)
 
 ### Manual and documentation:
 
