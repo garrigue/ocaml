@@ -553,6 +553,8 @@ let rec builtin_meths self env env2 body =
     | _ -> raise Not_found
   in
   match body with
+  | Levent(lam, _) ->
+      builtin_meths self env env2 lam
   | Llet(_str, _k, s', Lvar s, body) when List.mem s self ->
       builtin_meths (s'::self) env env2 body
   | Lapply{ap_func = f; ap_args = [arg]} when const_path f ->
@@ -722,7 +724,7 @@ let transl_class ~scopes ids cl_id pub_meths cl vflag =
         begin try
           (* Doesn't seem to improve size for bytecode *)
           (* if not !Clflags.native_code then raise Not_found; *)
-          if not arr || !Clflags.debug then raise Not_found;
+          if not arr then raise Not_found;
           builtin_meths [self] env env2 (lfunction args body')
         with Not_found ->
           [lfunction ((self, Pgenval) :: args)

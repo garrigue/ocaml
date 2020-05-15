@@ -154,9 +154,19 @@ val stats : unit -> stats
 
 (** {1 Method update} *)
 
-val update_method : [> ] -> (< .. > as 'a) -> ('a -> Obj.t) -> 'a
+val update_method : [> ] -> (< .. > as 'a) -> ('a -> 'b) -> 'a
+val update_value : [> ] -> (< .. > as 'a) -> 'b -> 'a
 
 (*
-let update_m (obj : < m : 'a ; .. >) (m : 'a) =
-  CamlinternalOO.update_method `m obj (fun _ -> Obj.repr m);;
+let update_meth_m (obj : < m : 'a ; .. > as 'b) (m : 'b -> 'a) =
+  CamlinternalOO.update_method `m obj m;;
+let update_m (obj : < m : 'a ; .. >) (v : 'a) =
+  CamlinternalOO.update_value `m obj v;;
+let update_n (obj : < n : 'a ; .. >) (v : 'a) =
+  CamlinternalOO.update_value `n obj v;;
+let meths o = (fst (Obj.magic (o : < .. >)) : int array);;
+let o = object method m = 3 method n = 5 end;;
+let o' = update_m o 13;;
+let o2 = update_meth_m o (fun o -> o#n + 10);;
+let o3 = update_n o' 15;;
 *)

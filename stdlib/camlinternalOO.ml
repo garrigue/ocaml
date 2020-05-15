@@ -455,33 +455,6 @@ let lookup_tables root keys =
   | Empty ->
     build_path (Array.length keys - 1) keys root
 
-(**** method update ****)
-
-let redirect obj n = ret (fun _self -> sendself obj n)
-
-let copy_table (tbl : closure array) (obj : obj) (n : tag) (m : closure) =
-  let len : int = Obj.magic (Array.unsafe_get tbl 0) in
-  let tbl' = Array.make (len*2+2) (Obj.magic len) in
-  Array.unsafe_set tbl' 1 (Array.unsafe_get tbl 1);
-  for i = 1 to len do
-    let ofs = 2 * i in
-    let tag = Array.unsafe_get tbl (ofs+1) in
-    Array.unsafe_set tbl' (ofs+1) tag;
-    Array.unsafe_set tbl' ofs
-      (if Obj.repr tag == Obj.repr n then m else redirect obj ofs);
-  done;
-  tbl'
-
-let update_method (tag : [> ]) (obj : < .. > as 'a) (m : 'a -> Obj.t) : 'a =
-  if not (Obj.is_int (Obj.repr tag)) then invalid_arg "Oo.update_method";
-  let tag : tag = Obj.magic tag in
-  let obj = Obj.repr obj in
-  let mets : closure array = Obj.obj (Obj.field obj 0) in
-  let mets' = copy_table mets (Obj.obj obj) tag (ret (Obj.magic m)) in
-  let obj' = Obj.new_block Obj.object_tag 2 in
-  Obj.set_field obj' 0 (Obj.repr mets');
-  set_id (Obj.magic obj')
-
 (**** builtin methods ****)
 
 let get_const x = ret (fun _obj -> x)
@@ -629,6 +602,43 @@ let set_methods table methods =
     set_method table label clo;
     incr i
   done
+
+(**** method update ****)
+
+let redirect obj n = ret (fun _self -> sendself obj n)
+let redirect_clos = redirect (Obj.magic 0) (Obj.magic 0)
+let get_const_clos = get_const 0
+
+let copy_table (tbl : closure array) (obj : obj) (n : tag) (m : closure) =
+  let len : int = fst (Obj.magic tbl) in
+  let tbl' = Array.make (len*2+2) (Obj.magic len) in
+  Array.unsafe_set tbl' 1 (Array.unsafe_get tbl 1);
+  for i = 1 to len do
+    let ofs = 2 * i in
+    let tag = Array.unsafe_get tbl (ofs+1) in
+    Array.unsafe_set tbl' (ofs+1) tag;
+    Array.unsafe_set tbl' ofs
+      (if Obj.repr tag == Obj.repr n then m else
+       let clos = Array.unsafe_get tbl ofs in
+       (* Avoid allocation if possible *)
+       if fst (Obj.magic clos) == fst (Obj.magic redirect_clos)
+       || fst (Obj.magic clos) == fst (Obj.magic get_const_clos) then clos
+       else redirect obj ofs);
+  done;
+  tbl'
+
+let update_method (tag : [> ]) (obj : < .. > as 'a) (m : 'a -> 'b) : 'a =
+  if not (Obj.is_int (Obj.repr tag)) then invalid_arg "Oo.update_method";
+  let tag : tag = Obj.magic tag in
+  let obj = Obj.repr obj in
+  let mets : closure array = fst (Obj.obj obj) in
+  let mets' = copy_table mets (Obj.obj obj) tag (ret (Obj.magic m)) in
+  let obj' = Obj.new_block Obj.object_tag 2 in
+  Obj.set_field obj' 0 (Obj.repr mets');
+  set_id (Obj.magic obj')
+
+let update_value tag obj v =
+  update_method tag obj (Obj.magic (get_const v))
 
 (**** Statistics ****)
 
