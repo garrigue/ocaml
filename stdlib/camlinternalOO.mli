@@ -151,3 +151,12 @@ type stats =
     methods : int;
     inst_vars : int }
 val stats : unit -> stats
+
+(** {1 Method update} *)
+
+val update_method : [> ] -> (< .. > as 'a) -> ('a -> Obj.t) -> 'a
+
+(*
+let update_m (obj : < m : 'a ; .. >) (m : 'a) =
+  CamlinternalOO.update_method `m obj (fun _ -> Obj.repr m);;
+*)
