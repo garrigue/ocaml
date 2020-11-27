@@ -224,14 +224,14 @@ let type_module_type_of_fwd :
 (* Additional validity checks on type definitions arising from
    recursive modules *)
 
-let check_recmod_typedecls env decls =
+let check_recmod_typedecls ~orig_env env decls =
   let recmod_ids = List.map fst decls in
   List.iter
     (fun (id, md) ->
       List.iter
         (fun path ->
-          Typedecl.check_recmod_typedecl env md.Types.md_loc recmod_ids
-                                         path (Env.find_type path env))
+          Typedecl.check_recmod_typedecl ~orig_env env
+            md.Types.md_loc recmod_ids path (Env.find_type path env))
         (Mtype.type_paths env (Pident id) md.Types.md_type))
     decls
 
@@ -390,19 +390,20 @@ let check_well_formed_module env loc context mty =
      Printtyp.modtype mty; *)
   let open Btype in
   let iterator =
-    let rec check_signature env = function
+    let rec check_signature orig_env env = function
       | [] -> ()
       | Sig_module (id, _, mty, Trec_first, _) :: rem ->
           let (id_mty_l, rem) = extract_next_modules rem in
           begin try
-            check_recmod_typedecls (Lazy.force env) ((id, mty) :: id_mty_l)
+            let orig_env = Lazy.force orig_env and env = Lazy.force env in
+            check_recmod_typedecls ~orig_env env ((id, mty) :: id_mty_l)
           with Typedecl.Error (_, err) ->
             raise (Error (loc, Lazy.force env,
                           Badly_formed_signature(context, err)))
           end;
-          check_signature env rem
+          check_signature orig_env env rem
       | _ :: rem ->
-          check_signature env rem
+          check_signature orig_env env rem
     in
     let env, super = iterator_with_env env in
     { super with
@@ -410,7 +411,7 @@ let check_well_formed_module env loc context mty =
       it_signature = (fun self sg ->
         let env_before = !env in
         let env = lazy (Env.add_signature sg (Lazy.force env_before)) in
-        check_signature env sg;
+        check_signature env_before env sg;
         super.it_signature self sg);
     }
   in
@@ -1589,7 +1590,7 @@ and transl_recmodule_modtypes env sdecls =
       (fun () -> transition env0 init)
   in
   let env1 = make_env dcl1 in
-  check_recmod_typedecls env1 (map_mtys dcl1);
+  check_recmod_typedecls ~orig_env:env env1 (map_mtys dcl1);
   let dcl2 = transition env1 dcl1 in
 (*
   List.iter
@@ -1598,7 +1599,7 @@ and transl_recmodule_modtypes env sdecls =
     dcl2;
 *)
   let env2 = make_env dcl2 in
-  check_recmod_typedecls env2 (map_mtys dcl2);
+  check_recmod_typedecls ~orig_env:env env2 (map_mtys dcl2);
   let dcl2 =
     List.map2 (fun pmd (id, id_loc, md, mty) ->
       let tmd =

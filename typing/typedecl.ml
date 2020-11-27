@@ -1576,13 +1576,13 @@ let approx_type_decl sdecl_list =
 (* Variant of check_abbrev_recursion to check the well-formedness
    conditions on type abbreviations defined within recursive modules. *)
 
-let check_recmod_typedecl env loc recmod_ids path decl =
+let check_recmod_typedecl ~orig_env env loc recmod_ids path decl =
   (* recmod_ids is the list of recursively-defined module idents.
      (path, decl) is the type declaration to be checked. *)
   let to_check path = Path.exists_free recmod_ids path in
   check_well_founded_decl env loc path decl to_check;
-  check_recursion ~orig_env:env env loc path decl to_check;
-  (* additionally check coherece, as one might build an incoherent signature,
+  check_recursion ~orig_env env loc path decl to_check;
+  (* additionally check coherence, as one might build an incoherent signature,
      and use it to build an incoherent module, cf. #7851 *)
   check_coherence env loc path decl
 

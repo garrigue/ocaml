@@ -251,7 +251,7 @@ end
 module type S = sig type !'a s type 'a t = 'b constraint 'a = 'b s end
 |}]
 
-(* This still causes a stack overflow *)
+(* This still causes a stack overflow, see Yallop in #9870 *)
 (*
 module rec M : S =
 struct
